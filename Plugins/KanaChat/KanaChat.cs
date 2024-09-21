@@ -1,5 +1,8 @@
 ﻿//Reference: WanaKanaShaapu
+using System;
+using System.Collections.Generic;
 using ConVar;
+using Newtonsoft.Json;
 using WanaKanaShaapu;
 
 namespace Oxide.Plugins
@@ -8,6 +11,49 @@ namespace Oxide.Plugins
     [Description("Convert romaji typed in chat to kana.")]
     public class KanaChat : RustPlugin
     {
+        #region Configuration
+
+        private Configuration _configuration;
+
+        private class Configuration
+        {
+            public List<string> ProhibitedWords;
+        }
+
+        private Configuration GetDefaultConfig()
+        {
+            return new Configuration
+            {
+                ProhibitedWords = new List<string>()
+            };
+        }
+
+        protected override void LoadConfig()
+        {
+            base.LoadConfig();
+
+            try
+            {
+                _configuration = Config.ReadObject<Configuration>();
+
+                if (_configuration == null)
+                    LoadDefaultConfig();
+            }
+            catch
+            {
+                PrintError("Configuration file is corrupt! Check your config file at https://jsonlint.com/");
+                LoadDefaultConfig();
+                return;
+            }
+
+            SaveConfig();
+        }
+
+        protected override void LoadDefaultConfig() => _configuration = GetDefaultConfig();
+        protected override void SaveConfig() => Config.WriteObject(_configuration);
+
+        #endregion
+
         #region Oxide hooks
 
         private object OnPlayerChat(BasePlayer player, string message, Chat.ChatChannel channel)
@@ -15,10 +61,10 @@ namespace Oxide.Plugins
             switch (channel)
             {
                 case Chat.ChatChannel.Global:
-                    SendMessageToGlobalChat(ToKana(message));
+                    SendGlobalChat(ToKana(message));
                     break;
                 case Chat.ChatChannel.Team:
-                    SendMessageToTeamChat(player, ToKana(message));
+                    SendTeamChat(player, ToKana(message));
                     break;
             }
             return false;
@@ -26,23 +72,32 @@ namespace Oxide.Plugins
 
         #endregion
 
-        private string ToKana(string message)
+        private string ToKana(string romaji)
         {
-            return $"{WanaKana.ToKana(message)}({message})";
+            var maskedProhibitedWords = MaskProhibitedWords(romaji, _configuration.ProhibitedWords);
+            var kana = WanaKana.ToKana(maskedProhibitedWords);
+
+            return $"{kana}({maskedProhibitedWords})";
         }
 
-        private void SendMessageToGlobalChat(string message)
+        private void SendGlobalChat(string message)
         {
             PrintToChat(message);
         }
 
-        private void SendMessageToTeamChat(BasePlayer player, string message)
+        private void SendTeamChat(BasePlayer player, string message)
         {
             foreach (var member in player.Team.members)
             {
                 BasePlayer basePlayer = RelationshipManager.FindByID(member);
                 PrintToChat(basePlayer, message);
             }
+        }
+
+        private string MaskProhibitedWords(string str, List<string> prohibitedWords)
+        {
+            prohibitedWords.ForEach(prohibitedWord => str = str.Replace(prohibitedWord, new string('*', prohibitedWord.Length), StringComparison.OrdinalIgnoreCase));
+            return str;
         }
     }
 }
