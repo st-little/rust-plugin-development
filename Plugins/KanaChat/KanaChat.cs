@@ -11,6 +11,8 @@ namespace Oxide.Plugins
     [Description("Convert romaji typed in chat to kana.")]
     public class KanaChat : RustPlugin
     {
+        private const string Permission = "kanachat.allow";
+
         #region Configuration
 
         private Configuration _configuration;
@@ -55,6 +57,21 @@ namespace Oxide.Plugins
         #endregion
 
         #region Oxide hooks
+
+        void Init()
+        {
+            permission.RegisterPermission(Permission, this);
+
+            Unsubscribe(nameof(OnPlayerChat));
+        }
+
+        private void OnPlayerConnected(BasePlayer instance)
+        {
+            if (permission.UserHasPermission(instance.UserIDString, Permission))
+            {
+                Subscribe(nameof(OnPlayerChat));
+            }
+        }
 
         private object OnPlayerChat(BasePlayer player, string message, Chat.ChatChannel channel)
         {
