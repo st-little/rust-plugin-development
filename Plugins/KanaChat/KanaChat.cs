@@ -1,6 +1,7 @@
 ﻿//Reference: WanaKanaShaapu
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ConVar;
 using Newtonsoft.Json;
 using WanaKanaShaapu;
@@ -20,13 +21,15 @@ namespace Oxide.Plugins
         private class Configuration
         {
             public List<string> ProhibitedWords;
+            public List<string> IgnoreWords;
         }
 
         private Configuration GetDefaultConfig()
         {
             return new Configuration
             {
-                ProhibitedWords = new List<string>()
+                ProhibitedWords = new List<string>(),
+                IgnoreWords = new List<string>()
             };
         }
 
@@ -56,6 +59,38 @@ namespace Oxide.Plugins
 
         #endregion
 
+        #region Prohibited words
+
+        private string MaskProhibitedWords(string str, List<string> prohibitedWords)
+        {
+            prohibitedWords.ForEach(prohibitedWord => str = str.Replace(prohibitedWord, new string('*', prohibitedWord.Length), StringComparison.OrdinalIgnoreCase));
+            return str;
+        }
+
+        #endregion
+
+        #region Ignore words
+
+        private class IgnoreWord
+        {
+            public string Word;
+            public int StartIndex;
+            public int EndIndex;
+        }
+
+        private List<IgnoreWord> IncludedIgnoreWords(string str, List<string> ignoreWords)
+        {
+            var includedIgnoreWords = new List<IgnoreWord>();
+            foreach (var ignoreWord in ignoreWords)
+            {
+                var startIndex = str.IndexOf(ignoreWord, 0, str.Length, StringComparison.OrdinalIgnoreCase);
+                if (0 <= startIndex) includedIgnoreWords.Add(new IgnoreWord { Word = ignoreWord, StartIndex = startIndex, EndIndex = startIndex + ignoreWord.Length });
+            }
+            return includedIgnoreWords.OrderBy(x => x.StartIndex).ToList();
+        }
+
+        #endregion
+
         #region Oxide hooks
 
         void Init()
@@ -78,10 +113,10 @@ namespace Oxide.Plugins
             switch (channel)
             {
                 case Chat.ChatChannel.Global:
-                    SendGlobalChat(ToKana(message));
+                    SendGlobalChat(makeChatMessage(message));
                     break;
                 case Chat.ChatChannel.Team:
-                    SendTeamChat(player, ToKana(message));
+                    SendTeamChat(player, makeChatMessage(message));
                     break;
             }
             return false;
@@ -89,12 +124,36 @@ namespace Oxide.Plugins
 
         #endregion
 
-        private string ToKana(string romaji)
+        private string makeChatMessage(string romaji)
         {
             var maskedProhibitedWords = MaskProhibitedWords(romaji, _configuration.ProhibitedWords);
-            var kana = WanaKana.ToKana(maskedProhibitedWords);
+            var includedIgnoreWords = IncludedIgnoreWords(maskedProhibitedWords, _configuration.IgnoreWords);
 
-            return $"{kana}({maskedProhibitedWords})";
+            if (includedIgnoreWords.Count == 0) return $"{WanaKana.ToKana(maskedProhibitedWords)}({maskedProhibitedWords})";
+
+            var message = maskedProhibitedWords;
+            for (int i = 0; i < includedIgnoreWords.Count; i++)
+            {
+                if (i == 0)
+                {
+                    var kana = WanaKana.ToKana(maskedProhibitedWords.Substring(0, includedIgnoreWords[0].StartIndex));
+                    var ignoreWord = maskedProhibitedWords.Substring(includedIgnoreWords[0].StartIndex, includedIgnoreWords[0].Word.Length);
+                    message = $"{kana}{ignoreWord}";
+                }
+                else
+                {
+                    var kana = WanaKana.ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i - 1].EndIndex, includedIgnoreWords[i].StartIndex - includedIgnoreWords[i - 1].EndIndex));
+                    var ignoreWord = maskedProhibitedWords.Substring(includedIgnoreWords[i].StartIndex, includedIgnoreWords[i].Word.Length);
+                    message += $"{kana}{ignoreWord}";
+                }
+
+                if (i == includedIgnoreWords.Count - 1)
+                {
+                    var kana = WanaKana.ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i].EndIndex));
+                    message += kana;
+                }
+            }
+            return $"{message}({maskedProhibitedWords})";
         }
 
         private void SendGlobalChat(string message)
@@ -109,12 +168,6 @@ namespace Oxide.Plugins
                 BasePlayer basePlayer = RelationshipManager.FindByID(member);
                 PrintToChat(basePlayer, message);
             }
-        }
-
-        private string MaskProhibitedWords(string str, List<string> prohibitedWords)
-        {
-            prohibitedWords.ForEach(prohibitedWord => str = str.Replace(prohibitedWord, new string('*', prohibitedWord.Length), StringComparison.OrdinalIgnoreCase));
-            return str;
         }
     }
 }
