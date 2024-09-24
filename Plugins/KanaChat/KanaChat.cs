@@ -12,7 +12,14 @@ namespace Oxide.Plugins
     [Description("Convert romaji typed in chat to kana.")]
     public class KanaChat : RustPlugin
     {
+        #region Fields
+
         private const string Permission = "kanachat.allow";
+
+        private const string TeamPrefixColor = "#AAFF55";
+        private const string PlayerNameColor = "#55AAFF";
+
+        #endregion
 
         #region Configuration
 
@@ -113,13 +120,13 @@ namespace Oxide.Plugins
             switch (channel)
             {
                 case Chat.ChatChannel.Global:
-                    SendGlobalChat(makeChatMessage(message));
-                    break;
+                    SendGlobalChat($"<color={PlayerNameColor}>{player.displayName}</color>: {makeChatMessage(message)}");
+                    return false;
                 case Chat.ChatChannel.Team:
-                    SendTeamChat(player, makeChatMessage(message));
-                    break;
+                    SendTeamChat(player, $"<color={TeamPrefixColor}>[TEAM]</color> <color={PlayerNameColor}>{player.displayName}</color>: {makeChatMessage(message)}");
+                    return false;
             }
-            return false;
+            return null;
         }
 
         #endregion
