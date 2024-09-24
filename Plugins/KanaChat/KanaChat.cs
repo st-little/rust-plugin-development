@@ -126,6 +126,8 @@ namespace Oxide.Plugins
 
         private string makeChatMessage(string romaji)
         {
+            if (!WanaKana.IsRomaji(romaji)) return romaji;
+
             var maskedProhibitedWords = MaskProhibitedWords(romaji, _configuration.ProhibitedWords);
             var includedIgnoreWords = IncludedIgnoreWords(maskedProhibitedWords, _configuration.IgnoreWords);
 
