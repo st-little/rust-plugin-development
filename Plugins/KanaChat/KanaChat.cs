@@ -1,4 +1,6 @@
 ﻿//Reference: WanaKanaShaapu
+using Oxide.Core.Libraries.Covalence;
+using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,9 +18,6 @@ namespace Oxide.Plugins
 
         private const string Permission = "kanachat.allow";
 
-        private const string TeamPrefixColor = "#AAFF55";
-        private const string PlayerNameColor = "#55AAFF";
-
         #endregion
 
         #region Configuration
@@ -29,7 +28,6 @@ namespace Oxide.Plugins
         {
             public List<string> ProhibitedWords;
             public List<string> IgnoreWords;
-            public bool UseBetterChat;
         }
 
         private Configuration GetDefaultConfig()
@@ -38,7 +36,6 @@ namespace Oxide.Plugins
             {
                 ProhibitedWords = new List<string>(),
                 IgnoreWords = new List<string>(),
-                UseBetterChat = false
             };
         }
 
@@ -105,32 +102,17 @@ namespace Oxide.Plugins
         void Init()
         {
             permission.RegisterPermission(Permission, this);
-
-            Unsubscribe(nameof(OnPlayerChat));
         }
 
-        private void OnPlayerConnected(BasePlayer instance)
-        {
-            if (permission.UserHasPermission(instance.UserIDString, Permission) && !_configuration.UseBetterChat)
-            {
-                Subscribe(nameof(OnPlayerChat));
-            }
-        }
+        #endregion
 
-        private object OnPlayerChat(BasePlayer player, string message, Chat.ChatChannel channel)
-        {
-            if (_configuration.UseBetterChat) return null;
+        #region Better Chat hooks
 
-            switch (channel)
-            {
-                case Chat.ChatChannel.Global:
-                    SendGlobalChat($"<color={PlayerNameColor}>{player.displayName}</color>: {makeChatMessage(message)}");
-                    return false;
-                case Chat.ChatChannel.Team:
-                    SendTeamChat(player, $"<color={TeamPrefixColor}>[TEAM]</color> <color={PlayerNameColor}>{player.displayName}</color>: {makeChatMessage(message)}");
-                    return false;
-            }
-            return null;
+        private void OnBetterChat(Dictionary<string, object> data)
+        {
+            if (!permission.UserHasPermission((data["Player"] as IPlayer).Id, Permission)) return;
+
+            data["Message"] = makeChatMessage(data["Message"] as string);
         }
 
         #endregion
@@ -167,31 +149,6 @@ namespace Oxide.Plugins
                 }
             }
             return $"{message}({maskedProhibitedWords})";
-        }
-
-        private void SendGlobalChat(string message)
-        {
-            PrintToChat(message);
-        }
-
-        private void SendTeamChat(BasePlayer player, string message)
-        {
-            foreach (var member in player.Team.members)
-            {
-                BasePlayer basePlayer = RelationshipManager.FindByID(member);
-                PrintToChat(basePlayer, message);
-            }
-        }
-
-        private void OnBetterChat(Dictionary<string, object> data)
-        {
-            if (!_configuration.UseBetterChat)
-            {
-                data["CancelOption"] = 2;   // cancel both Better Chat handling & default game chat
-                return;
-            }
-
-            data["Message"] = makeChatMessage(data["Message"] as string);
         }
     }
 }
