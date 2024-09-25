@@ -89,8 +89,14 @@ namespace Oxide.Plugins
             var includedIgnoreWords = new List<IgnoreWord>();
             foreach (var ignoreWord in ignoreWords)
             {
-                var startIndex = str.IndexOf(ignoreWord, 0, str.Length, StringComparison.OrdinalIgnoreCase);
-                if (0 <= startIndex) includedIgnoreWords.Add(new IgnoreWord { Word = ignoreWord, StartIndex = startIndex, EndIndex = startIndex + ignoreWord.Length });
+                int index = str.IndexOf(ignoreWord, StringComparison.OrdinalIgnoreCase);
+                {
+                    while (index != -1)
+                    {
+                        includedIgnoreWords.Add(new IgnoreWord { Word = ignoreWord, StartIndex = index, EndIndex = index + ignoreWord.Length });
+                        index = str.IndexOf(ignoreWord, index + ignoreWord.Length, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
             }
             return includedIgnoreWords.OrderBy(x => x.StartIndex).ToList();
         }
