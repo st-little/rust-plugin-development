@@ -29,6 +29,7 @@ namespace Oxide.Plugins
         {
             public List<string> ProhibitedWords;
             public List<string> IgnoreWords;
+            public bool UseBetterChat;
         }
 
         private Configuration GetDefaultConfig()
@@ -36,7 +37,8 @@ namespace Oxide.Plugins
             return new Configuration
             {
                 ProhibitedWords = new List<string>(),
-                IgnoreWords = new List<string>()
+                IgnoreWords = new List<string>(),
+                UseBetterChat = false
             };
         }
 
@@ -109,7 +111,7 @@ namespace Oxide.Plugins
 
         private void OnPlayerConnected(BasePlayer instance)
         {
-            if (permission.UserHasPermission(instance.UserIDString, Permission))
+            if (permission.UserHasPermission(instance.UserIDString, Permission) && !_configuration.UseBetterChat)
             {
                 Subscribe(nameof(OnPlayerChat));
             }
@@ -117,6 +119,8 @@ namespace Oxide.Plugins
 
         private object OnPlayerChat(BasePlayer player, string message, Chat.ChatChannel channel)
         {
+            if (_configuration.UseBetterChat) return null;
+
             switch (channel)
             {
                 case Chat.ChatChannel.Global:
@@ -177,6 +181,17 @@ namespace Oxide.Plugins
                 BasePlayer basePlayer = RelationshipManager.FindByID(member);
                 PrintToChat(basePlayer, message);
             }
+        }
+
+        private void OnBetterChat(Dictionary<string, object> data)
+        {
+            if (!_configuration.UseBetterChat)
+            {
+                data["CancelOption"] = 2;   // cancel both Better Chat handling & default game chat
+                return;
+            }
+
+            data["Message"] = makeChatMessage(data["Message"] as string);
         }
     }
 }
