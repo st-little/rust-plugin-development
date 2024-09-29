@@ -76,6 +76,12 @@ namespace Oxide.Plugins
 
         #region Better Chat hooks
 
+        /// <summary>
+        /// OnBetterChat is called when Better Chat is trying to send a chat message.
+        /// </summary>
+        /// <param name="data">dataDictionary<string, object></param>
+        /// <returns></returns>
+        /// <see href="https://umod.org/plugins/better-chat#for-developers-api">For Developers (API)</see>
         private void OnBetterChat(Dictionary<string, object> data)
         {
             if (!permission.UserHasPermission((data["Player"] as IPlayer).Id, Permission)) return;
@@ -87,6 +93,12 @@ namespace Oxide.Plugins
 
         #region Kana conversion
 
+        /// <summary>
+        /// Masks prohibited words in the string.
+        /// </summary>
+        /// <param name="str">String</param>
+        /// <param name="prohibitedWords">Prohibited words</param>
+        /// <returns>String with masked prohibited characters.</returns>
         private static string MaskProhibitedWords(string str, List<string> prohibitedWords)
         {
             prohibitedWords.ForEach(prohibitedWord => str = str.Replace(prohibitedWord, new string('*', prohibitedWord.Length), StringComparison.OrdinalIgnoreCase));
@@ -100,6 +112,12 @@ namespace Oxide.Plugins
             public int EndIndex;
         }
 
+        /// <summary>
+        /// Returns the position of the ignored words in the string.
+        /// </summary>
+        /// <param name="str">String</param>
+        /// <param name="ignoreWords">Ignored words</param>
+        /// <returns>The position of the ignored words in the string.</returns>
         private static List<IgnoreWord> IncludedIgnoreWords(string str, List<string> ignoreWords)
         {
             var includedIgnoreWords = new List<IgnoreWord>();
@@ -117,6 +135,14 @@ namespace Oxide.Plugins
             return includedIgnoreWords.OrderBy(x => x.StartIndex).ToList();
         }
 
+        /// <summary>
+        /// Converts chats entered in romaji to kana. WanaKanaShaapu is used for the conversion.
+        /// </summary>
+        /// <param name="romaji">Chat messages typed in romaji.</param>
+        /// <param name="prohibitedWords">Prohibited words</param>
+        /// <param name="ignoreWords">Ignored words</param>
+        /// <returns>Chet message converted to Kana.</returns>
+        /// <see href="https://github.com/kmoroz/WanaKanaShaapu">WanaKanaShaapu</see>
         private static string MakeChatMessage(string romaji, List<string> prohibitedWords, List<string> ignoreWords)
         {
             if (!WanaKana.IsRomaji(romaji)) return romaji;
