@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanaChat", "Plugins\KanaCha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanaChatUnitTest", "Plugins\KanaChatUnitTest\KanaChatUnitTest.csproj", "{408AECA2-51DD-493A-8BB4-16D82DD1BC7E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelicopterLicensePlate", "Plugins\HelicopterLicensePlate\HelicopterLicensePlate.csproj", "{A51149FA-A6D9-4E42-932A-671816BDF67F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,9 +28,14 @@ Global
 		{408AECA2-51DD-493A-8BB4-16D82DD1BC7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{408AECA2-51DD-493A-8BB4-16D82DD1BC7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{408AECA2-51DD-493A-8BB4-16D82DD1BC7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A51149FA-A6D9-4E42-932A-671816BDF67F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A51149FA-A6D9-4E42-932A-671816BDF67F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A51149FA-A6D9-4E42-932A-671816BDF67F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A51149FA-A6D9-4E42-932A-671816BDF67F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{AFB8C698-A286-4CE8-84F2-46D829B4145B} = {74F3E9E5-ED31-4859-875E-0F814238A90A}
 		{408AECA2-51DD-493A-8BB4-16D82DD1BC7E} = {74F3E9E5-ED31-4859-875E-0F814238A90A}
+		{A51149FA-A6D9-4E42-932A-671816BDF67F} = {74F3E9E5-ED31-4859-875E-0F814238A90A}
 	EndGlobalSection
 EndGlobal
