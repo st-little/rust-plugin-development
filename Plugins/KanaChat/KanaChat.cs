@@ -65,26 +65,42 @@ namespace Oxide.Plugins
 
         #endregion
 
-        #region Prohibited words
+        #region Oxide hooks
 
-        private string MaskProhibitedWords(string str, List<string> prohibitedWords)
+        void Init()
+        {
+            permission.RegisterPermission(Permission, this);
+        }
+
+        #endregion
+
+        #region Better Chat hooks
+
+        private void OnBetterChat(Dictionary<string, object> data)
+        {
+            if (!permission.UserHasPermission((data["Player"] as IPlayer).Id, Permission)) return;
+
+            data["Message"] = MakeChatMessage(data["Message"] as string, _configuration.ProhibitedWords, _configuration.IgnoreWords);
+        }
+
+        #endregion
+
+        #region Kana conversion
+
+        private static string MaskProhibitedWords(string str, List<string> prohibitedWords)
         {
             prohibitedWords.ForEach(prohibitedWord => str = str.Replace(prohibitedWord, new string('*', prohibitedWord.Length), StringComparison.OrdinalIgnoreCase));
             return str;
         }
 
-        #endregion
-
-        #region Ignore words
-
-        private class IgnoreWord
+        public class IgnoreWord
         {
             public string Word;
             public int StartIndex;
             public int EndIndex;
         }
 
-        private List<IgnoreWord> IncludedIgnoreWords(string str, List<string> ignoreWords)
+        private static List<IgnoreWord> IncludedIgnoreWords(string str, List<string> ignoreWords)
         {
             var includedIgnoreWords = new List<IgnoreWord>();
             foreach (var ignoreWord in ignoreWords)
@@ -101,34 +117,12 @@ namespace Oxide.Plugins
             return includedIgnoreWords.OrderBy(x => x.StartIndex).ToList();
         }
 
-        #endregion
-
-        #region Oxide hooks
-
-        void Init()
-        {
-            permission.RegisterPermission(Permission, this);
-        }
-
-        #endregion
-
-        #region Better Chat hooks
-
-        private void OnBetterChat(Dictionary<string, object> data)
-        {
-            if (!permission.UserHasPermission((data["Player"] as IPlayer).Id, Permission)) return;
-
-            data["Message"] = makeChatMessage(data["Message"] as string);
-        }
-
-        #endregion
-
-        private string makeChatMessage(string romaji)
+        private static string MakeChatMessage(string romaji, List<string> prohibitedWords, List<string> ignoreWords)
         {
             if (!WanaKana.IsRomaji(romaji)) return romaji;
 
-            var maskedProhibitedWords = MaskProhibitedWords(romaji, _configuration.ProhibitedWords);
-            var includedIgnoreWords = IncludedIgnoreWords(maskedProhibitedWords, _configuration.IgnoreWords);
+            var maskedProhibitedWords = MaskProhibitedWords(romaji, prohibitedWords);
+            var includedIgnoreWords = IncludedIgnoreWords(maskedProhibitedWords, ignoreWords);
 
             if (includedIgnoreWords.Count == 0) return $"{WanaKana.ToKana(maskedProhibitedWords)}({maskedProhibitedWords})";
 
@@ -156,5 +150,26 @@ namespace Oxide.Plugins
             }
             return $"{message}({maskedProhibitedWords})";
         }
+
+        #endregion
+
+        #region Test Methods
+
+        internal protected static string MaskProhibitedWordsWrapper(string str, List<string> prohibitedWords)
+        {
+            return KanaChat.MaskProhibitedWords(str, prohibitedWords);
+        }
+
+        internal protected static List<IgnoreWord> IncludedIgnoreWordsWrapper(string str, List<string> ignoreWords)
+        {
+            return KanaChat.IncludedIgnoreWords(str, ignoreWords);
+        }
+
+        internal protected static string MakeChatMessageWrapper(string romaji, List<string> prohibitedWords, List<string> ignoreWords)
+        {
+            return KanaChat.MakeChatMessage(romaji, prohibitedWords, ignoreWords);
+        }
+
+        #endregion
     }
 }
