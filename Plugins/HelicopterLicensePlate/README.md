@@ -1,10 +1,16 @@
-# Plugins
-
-## HelicopterLicensePlate
+# Helicopter License Plate
 
 This plugin spawns a helicopter with a license plate.
 
-### Configuration
+## Installing Plugin
+
+1. Copy the `HelicopterLicensePlate.cs` file to `oxide/plugins` directory on the server.
+
+### Plugin Settings
+
+#### Configuration
+
+Configure plugin settings in `oxide/config/HelicopterLicensePlate.json`.
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -20,3 +26,7 @@ This plugin spawns a helicopter with a license plate.
 | ScraptransporthelicopterPositionX | float | 0f | X-axis of the position of the license plate on the Scraptransporthelicopter |
 | ScraptransporthelicopterPositionY | float | 0.3f | Y-axis of the position of the license plate on the Scraptransporthelicopter |
 | ScraptransporthelicopterPositionZ | float | -3.15f | Z-axis of the position of the license plate on the Scraptransporthelicopter |
+
+## Using Plugin
+
+1. Buy a helicopter in-game. Or spawn on command.
