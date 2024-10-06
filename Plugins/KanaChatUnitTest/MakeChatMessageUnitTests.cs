@@ -38,8 +38,8 @@ namespace KanaChatUnitTest
         {
             var prohibitedWords = new List<string> { "pw1", "pw2" };
             var ignoreWords = new List<string> { "gg", "rig" };
-            var str = "GG, rig yatteruhito imasuka? gg";
-            var expected = "GG、 rig やってるひと いますか？ gg(GG, rig yatteruhito imasuka? gg)";
+            var str = "GG, rig yatteruhito imasuka:happy:? gg";
+            var expected = "GG、 rig やってるひと いますか:happy:？ gg(GG, rig yatteruhito imasuka:happy:? gg)";
 
             var actual = KanaChat.MakeChatMessageWrapper(str, prohibitedWords, ignoreWords);
 

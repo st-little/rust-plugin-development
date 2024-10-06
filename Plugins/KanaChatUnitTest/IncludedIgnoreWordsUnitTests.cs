@@ -11,7 +11,7 @@ namespace KanaChatUnitTest
         {
             var ignoreWords = new List<string> { "gg", "rig" };
             var str = "";
-            var expected = new List<IgnoreWord>();
+            var expected = new List<WordPosition>();
             var actual = KanaChat.IncludedIgnoreWordsWrapper(str, ignoreWords);
 
             Assert.Equal(expected, actual);
@@ -23,7 +23,7 @@ namespace KanaChatUnitTest
         {
             var ignoreWords = new List<string> { "gg", "rig" };
             var str = "ignoreWords ha arimasen";
-            var expected = new List<IgnoreWord>();
+            var expected = new List<WordPosition>();
             var actual = KanaChat.IncludedIgnoreWordsWrapper(str, ignoreWords);
 
             Assert.Equal(expected, actual);
@@ -35,7 +35,7 @@ namespace KanaChatUnitTest
         {
             var ignoreWords = new List<string> { "GG", "rig" };
             var str = "rig yattemasuka? gg";
-            var expected = new List<IgnoreWord>() { new IgnoreWord { EndIndex = 3, StartIndex = 0, Word = "rig" }, new IgnoreWord { EndIndex = 19, StartIndex = 17, Word = "GG" } };
+            var expected = new List<WordPosition>() { new WordPosition { EndIndex = 3, StartIndex = 0, Word = "rig" }, new WordPosition { EndIndex = 19, StartIndex = 17, Word = "GG" } };
             var actual = KanaChat.IncludedIgnoreWordsWrapper(str, ignoreWords);
 
             Assert.Equivalent(expected, actual);

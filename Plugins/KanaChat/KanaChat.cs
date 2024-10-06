@@ -10,7 +10,7 @@ using WanaKanaShaapu;
 
 namespace Oxide.Plugins
 {
-    [Info("Kana Chat", "st-little", "0.1.1")]
+    [Info("Kana Chat", "st-little", "0.1.2")]
     [Description("Convert romaji typed in chat to kana.")]
     public class KanaChat : RustPlugin
     {
@@ -105,7 +105,7 @@ namespace Oxide.Plugins
             return str;
         }
 
-        public class IgnoreWord
+        public class WordPosition
         {
             public string Word;
             public int StartIndex;
@@ -118,21 +118,50 @@ namespace Oxide.Plugins
         /// <param name="str">String</param>
         /// <param name="ignoreWords">Ignored words</param>
         /// <returns>The position of the ignored words in the string.</returns>
-        private static List<IgnoreWord> IncludedIgnoreWords(string str, List<string> ignoreWords)
+        private static List<WordPosition> IncludedIgnoreWords(string str, List<string> ignoreWords)
         {
-            var includedIgnoreWords = new List<IgnoreWord>();
+            var includedIgnoreWords = new List<WordPosition>();
             foreach (var ignoreWord in ignoreWords)
             {
                 int index = str.IndexOf(ignoreWord, StringComparison.OrdinalIgnoreCase);
                 {
                     while (index != -1)
                     {
-                        includedIgnoreWords.Add(new IgnoreWord { Word = ignoreWord, StartIndex = index, EndIndex = index + ignoreWord.Length });
+                        includedIgnoreWords.Add(new WordPosition { Word = ignoreWord, StartIndex = index, EndIndex = index + ignoreWord.Length });
                         index = str.IndexOf(ignoreWord, index + ignoreWord.Length, StringComparison.OrdinalIgnoreCase);
                     }
                 }
             }
             return includedIgnoreWords.OrderBy(x => x.StartIndex).ToList();
+        }
+
+        /// <summary>
+        /// Returns the position of the emoji in the string.
+        /// </summary>
+        /// <param name="str">String</param>
+        /// <returns>The positions of the emoji in the string.</returns>
+        private static List<WordPosition> IncludedEmojis(string str)
+        {
+            const char delimiter = ':';
+            var includedEmojis = new List<WordPosition>();
+            int delimiterIndex = str.IndexOf(delimiter);
+            int? startIndex = null;
+
+            while (delimiterIndex != -1)
+            {
+                if (startIndex == null)
+                {
+                    startIndex = delimiterIndex;
+                }
+                else
+                {
+                    includedEmojis.Add(new WordPosition { Word = str.Substring(startIndex.Value, delimiterIndex - startIndex.Value + 1), StartIndex = startIndex.Value, EndIndex = delimiterIndex + 1 });
+                    startIndex = null;
+                }
+                delimiterIndex = str.IndexOf(delimiter, delimiterIndex + 1);
+            }
+
+            return includedEmojis.OrderBy(x => x.StartIndex).ToList();
         }
 
         /// <summary>
@@ -223,6 +252,10 @@ namespace Oxide.Plugins
 
             var maskedProhibitedWords = MaskProhibitedWords(romaji, prohibitedWords);
             var includedIgnoreWords = IncludedIgnoreWords(maskedProhibitedWords, ignoreWords);
+            var includedEmojis = IncludedEmojis(maskedProhibitedWords);
+
+            includedIgnoreWords.AddRange(includedEmojis);
+            includedIgnoreWords = includedIgnoreWords.OrderBy(x => x.StartIndex).ToList();
 
             if (includedIgnoreWords.Count == 0) return $"{ToKana(maskedProhibitedWords)}({maskedProhibitedWords})";
 
@@ -231,20 +264,20 @@ namespace Oxide.Plugins
             {
                 if (i == 0)
                 {
-                    var kana = ToKana(maskedProhibitedWords.Substring(0, includedIgnoreWords[0].StartIndex));
-                    var ignoreWord = maskedProhibitedWords.Substring(includedIgnoreWords[0].StartIndex, includedIgnoreWords[0].Word.Length);
+                    var kana = ToKana(maskedProhibitedWords[0..includedIgnoreWords[0].StartIndex]);
+                    var ignoreWord = maskedProhibitedWords[includedIgnoreWords[0].StartIndex..includedIgnoreWords[0].EndIndex];
                     message = $"{kana}{ignoreWord}";
                 }
                 else
                 {
-                    var kana = ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i - 1].EndIndex, includedIgnoreWords[i].StartIndex - includedIgnoreWords[i - 1].EndIndex));
-                    var ignoreWord = maskedProhibitedWords.Substring(includedIgnoreWords[i].StartIndex, includedIgnoreWords[i].Word.Length);
+                    var kana = ToKana(maskedProhibitedWords[includedIgnoreWords[i - 1].EndIndex..includedIgnoreWords[i].StartIndex]);
+                    var ignoreWord = maskedProhibitedWords[includedIgnoreWords[i].StartIndex..includedIgnoreWords[i].EndIndex];
                     message += $"{kana}{ignoreWord}";
                 }
 
                 if (i == includedIgnoreWords.Count - 1)
                 {
-                    var kana = ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i].EndIndex));
+                    var kana = ToKana(maskedProhibitedWords[includedIgnoreWords[i].EndIndex..]);
                     message += kana;
                 }
             }
@@ -260,9 +293,14 @@ namespace Oxide.Plugins
             return KanaChat.MaskProhibitedWords(str, prohibitedWords);
         }
 
-        internal protected static List<IgnoreWord> IncludedIgnoreWordsWrapper(string str, List<string> ignoreWords)
+        internal protected static List<WordPosition> IncludedIgnoreWordsWrapper(string str, List<string> ignoreWords)
         {
             return KanaChat.IncludedIgnoreWords(str, ignoreWords);
+        }
+
+        internal protected static List<WordPosition> IncludedEmojisWrapper(string str)
+        {
+            return KanaChat.IncludedEmojis(str);
         }
 
         internal protected static List<(int start, int end)> UppercaseWordsWrapper(string input)
