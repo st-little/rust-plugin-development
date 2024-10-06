@@ -10,7 +10,7 @@ using WanaKanaShaapu;
 
 namespace Oxide.Plugins
 {
-    [Info("Kana Chat", "st-little", "0.1.0")]
+    [Info("Kana Chat", "st-little", "0.1.1")]
     [Description("Convert romaji typed in chat to kana.")]
     public class KanaChat : RustPlugin
     {
@@ -136,6 +136,80 @@ namespace Oxide.Plugins
         }
 
         /// <summary>
+        /// Returns the position of the uppercase words in the string.
+        /// </summary>
+        /// <param name="str">String</param>
+        /// <returns>The position of the uppercase words in the string.</returns>
+        private static List<(int start, int end)> UppercaseWords(string str)
+        {
+            var uppercaseWordRanges = new List<(int start, int end)>();
+
+            int? startIndex = null;
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                if (char.IsUpper(str[i]))
+                {
+                    // Record the starting point of consecutive uppercase letters
+                    if (startIndex == null)
+                    {
+                        startIndex = i;
+                    }
+                }
+                else if (startIndex != null)
+                {
+                    // When a group of uppercase letters ends, add the range to the list
+                    uppercaseWordRanges.Add((startIndex.Value, i - 1));
+                    startIndex = null;
+                }
+            }
+
+            // Add a range of uppercase letters ending in a sequence of uppercase letters at the end
+            if (startIndex != null)
+            {
+                uppercaseWordRanges.Add((startIndex.Value, str.Length - 1));
+            }
+
+            return uppercaseWordRanges;
+        }
+
+        /// <summary>
+        /// Converts romaji to kana.
+        /// </summary>
+        /// <param name="romaji">romaji string</param>
+        /// <returns>String converted to kana.</returns>
+        private static string ToKana(string romaji)
+        {
+            var uppercaseWords = UppercaseWords(romaji);
+
+            if (uppercaseWords.Count == 0) return WanaKana.ToKana(romaji);
+
+            var message = romaji;
+            for (int i = 0; i < uppercaseWords.Count; i++)
+            {
+                if (i == 0)
+                {
+                    var kana = WanaKana.ToKana(romaji.Substring(0, uppercaseWords[0].start));
+                    var katakana = WanaKana.ToKana(romaji.Substring(uppercaseWords[0].start, uppercaseWords[0].end - uppercaseWords[0].start + 1));
+                    message = $"{kana}{katakana}";
+                }
+                else
+                {
+                    var kana = WanaKana.ToKana(romaji.Substring(uppercaseWords[i - 1].end + 1, uppercaseWords[i].start - uppercaseWords[i - 1].end - 1));
+                    var katakana = WanaKana.ToKana(romaji.Substring(uppercaseWords[i].start, uppercaseWords[i].end - uppercaseWords[i].start + 1));
+                    message += $"{kana}{katakana}";
+                }
+
+                if (i == uppercaseWords.Count - 1)
+                {
+                    var kana = WanaKana.ToKana(romaji.Substring(uppercaseWords[i].end + 1));
+                    message += kana;
+                }
+            }
+            return message;
+        }
+
+        /// <summary>
         /// Converts chats entered in romaji to kana. WanaKanaShaapu is used for the conversion.
         /// </summary>
         /// <param name="romaji">Chat messages typed in romaji.</param>
@@ -150,27 +224,27 @@ namespace Oxide.Plugins
             var maskedProhibitedWords = MaskProhibitedWords(romaji, prohibitedWords);
             var includedIgnoreWords = IncludedIgnoreWords(maskedProhibitedWords, ignoreWords);
 
-            if (includedIgnoreWords.Count == 0) return $"{WanaKana.ToKana(maskedProhibitedWords)}({maskedProhibitedWords})";
+            if (includedIgnoreWords.Count == 0) return $"{ToKana(maskedProhibitedWords)}({maskedProhibitedWords})";
 
             var message = maskedProhibitedWords;
             for (int i = 0; i < includedIgnoreWords.Count; i++)
             {
                 if (i == 0)
                 {
-                    var kana = WanaKana.ToKana(maskedProhibitedWords.Substring(0, includedIgnoreWords[0].StartIndex));
+                    var kana = ToKana(maskedProhibitedWords.Substring(0, includedIgnoreWords[0].StartIndex));
                     var ignoreWord = maskedProhibitedWords.Substring(includedIgnoreWords[0].StartIndex, includedIgnoreWords[0].Word.Length);
                     message = $"{kana}{ignoreWord}";
                 }
                 else
                 {
-                    var kana = WanaKana.ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i - 1].EndIndex, includedIgnoreWords[i].StartIndex - includedIgnoreWords[i - 1].EndIndex));
+                    var kana = ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i - 1].EndIndex, includedIgnoreWords[i].StartIndex - includedIgnoreWords[i - 1].EndIndex));
                     var ignoreWord = maskedProhibitedWords.Substring(includedIgnoreWords[i].StartIndex, includedIgnoreWords[i].Word.Length);
                     message += $"{kana}{ignoreWord}";
                 }
 
                 if (i == includedIgnoreWords.Count - 1)
                 {
-                    var kana = WanaKana.ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i].EndIndex));
+                    var kana = ToKana(maskedProhibitedWords.Substring(includedIgnoreWords[i].EndIndex));
                     message += kana;
                 }
             }
@@ -189,6 +263,16 @@ namespace Oxide.Plugins
         internal protected static List<IgnoreWord> IncludedIgnoreWordsWrapper(string str, List<string> ignoreWords)
         {
             return KanaChat.IncludedIgnoreWords(str, ignoreWords);
+        }
+
+        internal protected static List<(int start, int end)> UppercaseWordsWrapper(string input)
+        {
+            return KanaChat.UppercaseWords(input);
+        }
+
+        internal protected static string ToKanaWrapper(string romaji)
+        {
+            return KanaChat.ToKana(romaji);
         }
 
         internal protected static string MakeChatMessageWrapper(string romaji, List<string> prohibitedWords, List<string> ignoreWords)
