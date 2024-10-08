@@ -13,7 +13,6 @@ namespace Oxide.Plugins
         private const string SmallWoodSignPrefab = "assets/prefabs/deployable/signs/sign.small.wood.prefab";
         public const string LockerPrefab = "assets/prefabs/deployable/locker/locker.deployed.prefab";
         public const string BbqPrefab = "assets/bundled/prefabs/static/bbq.static.prefab";
-        private const string SpherePrefab = "assets/prefabs/visualization/sphere.prefab";
         private const string RHIBPrefab = "assets/content/vehicles/boats/rhib/rhib.prefab";
         private const string SearchLightPrefab = "assets/prefabs/deployable/search light/searchlight.deployed.prefab";
         private bool IsServerInitialized = false;
@@ -142,101 +141,61 @@ namespace Oxide.Plugins
 
         private class EntityTransform
         {
-            public float SphereEntityRadius;
             public Vector3 LocalPosition;
-            public Vector3 LocalScale;
+            public float LocalScale;
             public Vector3 LocalEulerAngles;
 
         }
 
         private static void AddSearchlight(BaseVehicle vehicle, EntityTransform entityTransform)
         {
-            var sphereEntity = GameManager.server.CreateEntity(SpherePrefab, entityTransform.LocalPosition) as SphereEntity;
-            if (sphereEntity == null) return;
+            var searchLight = GameManager.server.CreateEntity(SearchLightPrefab, entityTransform.LocalPosition) as SearchLight;
+            if (searchLight == null) return;
 
-            sphereEntity.currentRadius = entityTransform.SphereEntityRadius;
-            sphereEntity.lerpRadius = entityTransform.SphereEntityRadius;
-            sphereEntity.SetParent(vehicle);
-            sphereEntity.Spawn();
-
-            SearchLight searchLight = GameManager.server.CreateEntity(SearchLightPrefab) as SearchLight;
-            if (searchLight == null)
-            {
-                sphereEntity.Kill();
-                return;
-            }
+            searchLight.SetParent(vehicle);
+            searchLight.SetFlag(BaseEntity.Flags.Reserved8, true);
+            searchLight.SetFlag(BaseEntity.Flags.Busy, true);
+            searchLight.pickup.enabled = false;
+            searchLight.transform.localEulerAngles = entityTransform.LocalEulerAngles;
 
             RemoveColliderProtection(searchLight);
 
-            searchLight.SetFlag(BaseEntity.Flags.Reserved8, true);
-            searchLight.SetFlag(BaseEntity.Flags.Busy, true);
-            searchLight.SetParent(sphereEntity);
-            searchLight.pickup.enabled = false;
-            searchLight.transform.localScale = entityTransform.LocalScale;
-            searchLight.transform.localEulerAngles = entityTransform.LocalEulerAngles;
-
             searchLight.Spawn();
 
-            _pluginInstance.EntityScaleManager.Call("API_RegisterScaledEntity", searchLight);
+            _pluginInstance.EntityScaleManager.CallHook("API_ScaleEntity", searchLight, entityTransform.LocalScale);
         }
 
         private static void AddBbq(BaseVehicle vehicle, EntityTransform entityTransform)
         {
-            var sphereEntity = GameManager.server.CreateEntity(SpherePrefab, entityTransform.LocalPosition) as SphereEntity;
-            if (sphereEntity == null) return;
-
-            sphereEntity.currentRadius = entityTransform.SphereEntityRadius;
-            sphereEntity.lerpRadius = entityTransform.SphereEntityRadius;
-            sphereEntity.SetParent(vehicle);
-            sphereEntity.Spawn();
-
-            var bbqEntity = GameManager.server.CreateEntity(BbqPrefab) as BaseOven;
-            if (bbqEntity == null)
-            {
-                sphereEntity.Kill();
-                return;
-            }
+            var bbqEntity = GameManager.server.CreateEntity(BbqPrefab, entityTransform.LocalPosition) as BaseOven;
+            if (bbqEntity == null) return;
 
             bbqEntity.dropsLoot = true;
-            bbqEntity.SetParent(sphereEntity);
+            bbqEntity.SetParent(vehicle);
             bbqEntity.pickup.enabled = false;
             bbqEntity.transform.localEulerAngles = entityTransform.LocalEulerAngles;
-            bbqEntity.transform.localScale = entityTransform.LocalScale;
 
             RemoveColliderProtection(bbqEntity);
 
             bbqEntity.Spawn();
 
-            _pluginInstance.EntityScaleManager.Call("API_RegisterScaledEntity", bbqEntity);
+            _pluginInstance.EntityScaleManager.CallHook("API_ScaleEntity", bbqEntity, entityTransform.LocalScale);
         }
 
         private static void AddLocker(BaseVehicle vehicle, EntityTransform entityTransform)
         {
-            var sphereEntity = GameManager.server.CreateEntity(SpherePrefab, entityTransform.LocalPosition) as SphereEntity;
-            if (sphereEntity == null) return;
+            var locker = GameManager.server?.CreateEntity(LockerPrefab, entityTransform.LocalPosition) as Locker;
+            if (locker == null) return;
 
-            sphereEntity.currentRadius = entityTransform.SphereEntityRadius;
-            sphereEntity.lerpRadius = entityTransform.SphereEntityRadius;
-            sphereEntity.SetParent(vehicle);
-            sphereEntity.Spawn();
-
-            var locker = GameManager.server?.CreateEntity(LockerPrefab) as Locker;
-            if (locker == null)
-            {
-                sphereEntity.Kill();
-                return;
-            }
-
-            locker.SetParent(sphereEntity);
+            locker.SetParent(vehicle);
             locker.pickup.enabled = false;
             locker.transform.localEulerAngles = entityTransform.LocalEulerAngles;
-            locker.transform.localScale = entityTransform.LocalScale;
 
             RemoveColliderProtection(locker);
 
             locker.Spawn();
 
-            _pluginInstance.EntityScaleManager.Call("API_RegisterScaledEntity", locker);
+            _pluginInstance.EntityScaleManager.CallHook("API_ScaleEntity", locker, entityTransform.LocalScale);
         }
 
         private static void AddSmallWoodSign(BaseVehicle vehicle, EntityTransform entityTransform)
@@ -252,16 +211,16 @@ namespace Oxide.Plugins
             RemoveColliderProtection(smallWoodSign);
 
             smallWoodSign.Spawn();
-            smallWoodSign.SendNetworkUpdateImmediate(true);
+
+            _pluginInstance.EntityScaleManager.CallHook("API_ScaleEntity", smallWoodSign, entityTransform.LocalScale);
         }
 
         private static void AddSearchlightAboveTheCockpit(BaseVehicle vehicle)
         {
             AddSearchlight(vehicle, new EntityTransform
             {
-                SphereEntityRadius = 0.4f,
+                LocalScale = 0.4f,
                 LocalPosition = new Vector3(0.27f, 3.2f, 0.85f),
-                LocalScale = new Vector3(0.4f, 0.4f, 0.4f),
                 LocalEulerAngles = new Vector3(0f, 180.0f, 0f)
             });
         }
@@ -270,9 +229,8 @@ namespace Oxide.Plugins
         {
             AddBbq(vehicle, new EntityTransform
             {
-                SphereEntityRadius = 0.4f,
+                LocalScale = 0.4f,
                 LocalPosition = new Vector3(0f, 1.5f, -1.3f),
-                LocalScale = new Vector3(0.4f, 0.4f, 0.4f),
                 LocalEulerAngles = new Vector3(0f, -90.0f, 0f)
             });
         }
@@ -281,9 +239,8 @@ namespace Oxide.Plugins
         {
             AddLocker(vehicle, new EntityTransform
             {
-                SphereEntityRadius = 0.6f,
+                LocalScale = 0.6f,
                 LocalPosition = new Vector3(0f, 1.15f, -1.6f),
-                LocalScale = new Vector3(0.6f, 0.6f, 0.6f),
                 LocalEulerAngles = new Vector3(-90.0f, 0f, 0f)
             });
         }
@@ -292,9 +249,8 @@ namespace Oxide.Plugins
         {
             AddSmallWoodSign(vehicle, new EntityTransform
             {
-                SphereEntityRadius = 0f,
+                LocalScale = 1f,
                 LocalPosition = new Vector3(0f, 1.5f, 1.3f),
-                LocalScale = new Vector3(0f, 0f, 0f),
                 LocalEulerAngles = new Vector3(-30f, 0f, 0f)
             });
         }
