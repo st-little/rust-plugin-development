@@ -2,105 +2,40 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
+using Oxide.Core;
 using Oxide.Core.Plugins;
+using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Neo RHIB", "st-little", "0.1.0")]
+    [Info("Neo RHIB", "st-little", "0.2.0")]
     [Description("This plugin spawns RHIB equipped with a searchlight, locker, and barbeque.")]
     public class NeoRHIB : RustPlugin
     {
+        private const string Permission = "neorhib.allow";
+
         private const string SmallWoodSignPrefab = "assets/prefabs/deployable/signs/sign.small.wood.prefab";
         public const string LockerPrefab = "assets/prefabs/deployable/locker/locker.deployed.prefab";
         public const string BbqPrefab = "assets/bundled/prefabs/static/bbq.static.prefab";
         private const string RHIBPrefab = "assets/content/vehicles/boats/rhib/rhib.prefab";
         private const string SearchLightPrefab = "assets/prefabs/deployable/search light/searchlight.deployed.prefab";
-        private bool IsServerInitialized = false;
 
         [PluginReference]
         Plugin EntityScaleManager;
 
         private static NeoRHIB _pluginInstance;
 
-        #region Configuration
-
-        private Configuration _configuration;
-
-        private class Configuration
-        {
-            public bool AddSearchlightAboveTheCockpit;
-            public bool AddBbqBetweenTheRearSeats;
-            public bool AddLockerOnTheRearHatch;
-            public bool AddSmallWoodSignToTheFrontOfTheCockpit;
-        }
-
-        private Configuration GetDefaultConfig()
-        {
-            return new Configuration
-            {
-                AddSearchlightAboveTheCockpit = true,
-                AddBbqBetweenTheRearSeats = true,
-                AddLockerOnTheRearHatch = true,
-                AddSmallWoodSignToTheFrontOfTheCockpit = true,
-            };
-        }
-
-        protected override void LoadConfig()
-        {
-            base.LoadConfig();
-
-            try
-            {
-                _configuration = Config.ReadObject<Configuration>();
-
-                if (_configuration == null)
-                    LoadDefaultConfig();
-            }
-            catch
-            {
-                PrintError("Configuration file is corrupt! Check your config file at https://jsonlint.com/");
-                LoadDefaultConfig();
-                return;
-            }
-
-            SaveConfig();
-        }
-
-        protected override void LoadDefaultConfig() => _configuration = GetDefaultConfig();
-        protected override void SaveConfig() => Config.WriteObject(_configuration);
-
-        #endregion
-
         #region Oxide Hooks
 
         private void Init()
         {
-            IsServerInitialized = false;
+            permission.RegisterPermission(Permission, this);
             _pluginInstance = this;
-        }
-        private void OnServerInitialized()
-        {
-            IsServerInitialized = true;
         }
 
         private void Unload()
         {
             _pluginInstance = null;
-        }
-
-        private void OnEntitySpawned(BaseNetworkable entity)
-        {
-            if (!IsServerInitialized) return;
-
-            switch (entity.PrefabName)
-            {
-                case RHIBPrefab:
-                    if (_configuration.AddSearchlightAboveTheCockpit) AddSearchlightAboveTheCockpit((BaseVehicle)entity);
-                    if (_configuration.AddBbqBetweenTheRearSeats) AddBbqBetweenTheRearSeats((BaseVehicle)entity);
-                    if (_configuration.AddLockerOnTheRearHatch) AddLockerOnTheRearHatch((BaseVehicle)entity);
-                    if (_configuration.AddSmallWoodSignToTheFrontOfTheCockpit) AddSmallWoodSignToTheFrontOfTheCockpit((BaseVehicle)entity);
-                    break;
-            }
         }
 
         // void OnEngineStarted(BaseVehicle vehicle, BasePlayer driver)
@@ -138,6 +73,51 @@ namespace Oxide.Plugins
         // }
 
         #endregion
+
+        #region Commands
+
+        [ChatCommand("neorhib")]
+        private void NeoRHIBCommand(BasePlayer player, string command, string[] args)
+        {
+            if (!permission.UserHasPermission(player.UserIDString, Permission))
+            {
+                PrintToChat(player, "You don't have permission to use this command!");
+                return;
+            }
+
+            var hit = GetPlayerEyesHeadRay(player);
+            if (hit == null) return;
+
+            if (args.Length == 0)
+            {
+                SpawnNeoRHIB(hit.Value.point);
+            }
+            else
+            {
+                SpawnNeoRHIB(hit.Value.point, null, args.Contains("searchlight"), args.Contains("bbq"), args.Contains("locker"), args.Contains("smallwoodsign"));
+            }
+        }
+
+        #endregion
+
+        private static RHIB? SpawnNeoRHIB(Vector3 spawnPosition, ulong? ownerID = null, bool isAddSearchlightAboveTheCockpit = true, bool isAddAddBbqBetweenTheRearSeats = true, bool isAddLockerOnTheRearHatch = true, bool isAddSmallWoodSignToTheFrontOfTheCockpit = true)
+        {
+            var rhibEntity = GameManager.server.CreateEntity(RHIBPrefab, spawnPosition) as RHIB;
+            if (rhibEntity == null) return null;
+
+            if (ownerID != null)
+            {
+                rhibEntity.OwnerID = (ulong)ownerID;
+            }
+            rhibEntity.Spawn();
+
+            if (isAddSearchlightAboveTheCockpit) AddSearchlightAboveTheCockpit(rhibEntity);
+            if (isAddAddBbqBetweenTheRearSeats) AddBbqBetweenTheRearSeats(rhibEntity);
+            if (isAddLockerOnTheRearHatch) AddLockerOnTheRearHatch(rhibEntity);
+            if (isAddSmallWoodSignToTheFrontOfTheCockpit) AddSmallWoodSignToTheFrontOfTheCockpit(rhibEntity);
+
+            return rhibEntity;
+        }
 
         private class EntityTransform
         {
@@ -240,7 +220,7 @@ namespace Oxide.Plugins
             AddLocker(vehicle, new EntityTransform
             {
                 LocalScale = 0.6f,
-                LocalPosition = new Vector3(0f, 1.15f, -1.6f),
+                LocalPosition = new Vector3(0f, 1.15f, -1.65f),
                 LocalEulerAngles = new Vector3(-90.0f, 0f, 0f)
             });
         }
@@ -253,6 +233,13 @@ namespace Oxide.Plugins
                 LocalPosition = new Vector3(0f, 1.5f, 1.3f),
                 LocalEulerAngles = new Vector3(-30f, 0f, 0f)
             });
+        }
+
+        private static RaycastHit? GetPlayerEyesHeadRay(BasePlayer basePlayer, float maxDistance = Mathf.Infinity)
+        {
+            return Physics.Raycast(basePlayer.eyes.HeadRay(), out var hit, maxDistance, Physics.DefaultRaycastLayers)
+                ? hit
+                : null;
         }
 
         private static void RemoveColliderProtection(BaseEntity colliderEntity)
