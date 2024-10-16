@@ -10,7 +10,7 @@ using static IOEntity;
 
 namespace Oxide.Plugins
 {
-    [Info("Electrician", "st-little", "0.2.0")]
+    [Info("Electrician", "st-little", "0.2.1")]
     [Description("This plugin upgrades the wire tool and streamlines the electrician's work.")]
     public class Electrician : RustPlugin
     {
@@ -191,6 +191,7 @@ namespace Oxide.Plugins
 
                 if (heldEntity.GetHeldEntity().name != WireToolPrefab)
                 {
+                    PowerInfoPanel.Close(player);
                     UsePowerInfoPanelPlayers.Remove(player.userID);
                     return;
                 }
