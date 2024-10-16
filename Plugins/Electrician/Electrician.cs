@@ -19,7 +19,7 @@ namespace Oxide.Plugins
         private Timer? GUIRefreshTimer = null;
         private readonly Dictionary<ulong, BasePlayer> UsePowerInfoPanelPlayers = new Dictionary<ulong, BasePlayer>();
 
-        private const string PowerInforPermission = "electrician.powerinfo.allow";
+        private const string PowerInfoPermission = "electrician.powerinfo.allow";
         private const string InvisibleWirePermission = "electrician.invisiblewire.allow";
 
         private const string WireToolPrefab = "assets/prefabs/tools/wire/wiretool.entity.prefab";
@@ -126,7 +126,7 @@ namespace Oxide.Plugins
 
         private void Init()
         {
-            permission.RegisterPermission(PowerInforPermission, this);
+            permission.RegisterPermission(PowerInfoPermission, this);
             permission.RegisterPermission(InvisibleWirePermission, this);
         }
 
@@ -138,7 +138,7 @@ namespace Oxide.Plugins
                 {
                     PowerInfoPanel.Close(player);
 
-                    if (!permission.UserHasPermission(player.UserIDString, PowerInforPermission))
+                    if (!permission.UserHasPermission(player.UserIDString, PowerInfoPermission))
                     {
                         UsePowerInfoPanelPlayers.Remove(player.userID);
                         return;
@@ -179,7 +179,7 @@ namespace Oxide.Plugins
 
         private void OnActiveItemChanged(BasePlayer player, Item activeItem, Item heldEntity)
         {
-            if (!permission.UserHasPermission(player.UserIDString, PowerInforPermission))
+            if (!permission.UserHasPermission(player.UserIDString, PowerInfoPermission))
             {
                 UsePowerInfoPanelPlayers.Remove(player.userID);
                 return;
@@ -267,7 +267,7 @@ namespace Oxide.Plugins
         [ChatCommand("elec.powerinfo")]
         private void SetPowerInfoPanelVisibilityCommand(BasePlayer player, string command, string[] args)
         {
-            if (!permission.UserHasPermission(player.UserIDString, PowerInforPermission))
+            if (!permission.UserHasPermission(player.UserIDString, PowerInfoPermission))
             {
                 PrintToChat(player, "You don't have permission to use this command!");
                 return;
