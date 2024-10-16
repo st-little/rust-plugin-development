@@ -10,7 +10,7 @@ using static IOEntity;
 
 namespace Oxide.Plugins
 {
-    [Info("Electrician", "st-little", "0.1.0")]
+    [Info("Electrician", "st-little", "0.2.0")]
     [Description("This plugin upgrades the wire tool and streamlines the electrician's work.")]
     public class Electrician : RustPlugin
     {
@@ -19,7 +19,9 @@ namespace Oxide.Plugins
         private Timer? GUIRefreshTimer = null;
         private readonly Dictionary<ulong, BasePlayer> UsePowerInfoPanelPlayers = new Dictionary<ulong, BasePlayer>();
 
-        private const string Permission = "electrician.allow";
+        private const string PowerInforPermission = "electrician.powerinfo.allow";
+        private const string InvisibleWirePermission = "electrician.invisiblewire.allow";
+
         private const string WireToolPrefab = "assets/prefabs/tools/wire/wiretool.entity.prefab";
         private const string ElectricFurnacePrefab = "assets/prefabs/deployable/playerioents/electricfurnace/electricfurnace.deployed.prefab";
 
@@ -124,7 +126,8 @@ namespace Oxide.Plugins
 
         private void Init()
         {
-            permission.RegisterPermission(Permission, this);
+            permission.RegisterPermission(PowerInforPermission, this);
+            permission.RegisterPermission(InvisibleWirePermission, this);
         }
 
         private void OnServerInitialized()
@@ -135,7 +138,7 @@ namespace Oxide.Plugins
                 {
                     PowerInfoPanel.Close(player);
 
-                    if (!permission.UserHasPermission(player.UserIDString, Permission))
+                    if (!permission.UserHasPermission(player.UserIDString, PowerInforPermission))
                     {
                         UsePowerInfoPanelPlayers.Remove(player.userID);
                         return;
@@ -176,7 +179,7 @@ namespace Oxide.Plugins
 
         private void OnActiveItemChanged(BasePlayer player, Item activeItem, Item heldEntity)
         {
-            if (!permission.UserHasPermission(player.UserIDString, Permission))
+            if (!permission.UserHasPermission(player.UserIDString, PowerInforPermission))
             {
                 UsePowerInfoPanelPlayers.Remove(player.userID);
                 return;
@@ -198,7 +201,7 @@ namespace Oxide.Plugins
 
         object OnWireConnect(BasePlayer player, IOEntity entity1, int inputs, IOEntity entity2, int outputs)
         {
-            if (!permission.UserHasPermission(player.UserIDString, Permission))
+            if (!permission.UserHasPermission(player.UserIDString, InvisibleWirePermission))
             {
                 UsePowerInfoPanelPlayers.Remove(player.userID);
                 return null;
@@ -242,7 +245,7 @@ namespace Oxide.Plugins
         [ChatCommand("elec.wire")]
         private void SetWireVisibilityCommand(BasePlayer player, string command, string[] args)
         {
-            if (!permission.UserHasPermission(player.UserIDString, Permission))
+            if (!permission.UserHasPermission(player.UserIDString, InvisibleWirePermission))
             {
                 PrintToChat(player, "You don't have permission to use this command!");
                 return;
@@ -264,7 +267,7 @@ namespace Oxide.Plugins
         [ChatCommand("elec.powerinfo")]
         private void SetPowerInfoPanelVisibilityCommand(BasePlayer player, string command, string[] args)
         {
-            if (!permission.UserHasPermission(player.UserIDString, Permission))
+            if (!permission.UserHasPermission(player.UserIDString, PowerInforPermission))
             {
                 PrintToChat(player, "You don't have permission to use this command!");
                 return;
