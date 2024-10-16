@@ -25,9 +25,16 @@ This plugin upgrades the wire tool and streamlines the electrician's work.
 
 Allow players to use plugin.
 
-- Allow players to use Where is my ride.
+- Allow players to use invisible wire.
+
     ```
-    oxide.grant user {PLAYER_ID} electrician.allow
+    oxide.grant user {PLAYER_ID} electrician.invisiblewire.allow
+    ```
+
+- Allow players to use power information.
+
+    ```
+    oxide.grant user {PLAYER_ID} electrician.powerinfo.allow
     ```
 
 ## Using Plugin
